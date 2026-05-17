@@ -14,7 +14,7 @@ st.set_page_config(
 
 from aurora.agent import runner
 from aurora.agent.schema import Report
-from aurora.config import GEMINI_API_KEY, DEFAULT_ACCOUNT_SIZE
+from aurora.config import GROQ_API_KEY, DEFAULT_ACCOUNT_SIZE
 from aurora.data import cache as data_cache
 from aurora.ui import chat as chat_ui
 from aurora.ui import render as render_ui
@@ -25,9 +25,9 @@ from aurora.ui import render as render_ui
 st.title("🍀 GOODLUCK $")
 st.caption("Swing-trade picks for the Nasdaq 100 — refreshed on demand, with a live AI analyst.")
 
-if not GEMINI_API_KEY:
+if not GROQ_API_KEY:
     st.error(
-        "GEMINI_API_KEY is not set. Get a free key at https://aistudio.google.com/apikey "
+        "GROQ_API_KEY is not set. Get a free key at https://console.groq.com/keys "
         "and add it to `.streamlit/secrets.toml` locally, or in Streamlit Cloud → Settings → Secrets."
     )
     st.stop()
