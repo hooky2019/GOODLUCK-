@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍀 GOODLUCK $ — Architecture Overview</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #00d4ff;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --pink: #ff7b72;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Inter", sans-serif;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.7;
+  }
+  h1 {
+    font-size: 2.2em;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 1.5em;
+    color: var(--accent);
+    margin-top: 48px;
+    border-left: 4px solid var(--accent);
+    padding-left: 12px;
+  }
+  h3 {
+    color: var(--orange);
+    margin-top: 28px;
+  }
+  .lead {
+    font-size: 1.1em;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .quote {
+    border-left: 4px solid var(--green);
+    background: rgba(63,185,80,0.08);
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+  code {
+    background: rgba(255,255,255,0.08);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+    font-family: "Cascadia Mono", "Consolas", monospace;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(0,212,255,0.15);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    margin: 0 4px;
+    font-weight: 600;
+  }
+  .tag-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-orange { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .tag-pink { background: rgba(255,123,114,0.15); color: var(--pink); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  tr:hover { background: rgba(255,255,255,0.02); }
+  .mermaid {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  ul li { margin: 6px 0; }
+  .footnote {
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  .big-emoji { font-size: 1.4em; }
+</style>
+</head>
+<body>
+
+<h1>🍀 GOODLUCK $ — Architecture Overview</h1>
+<p class="lead">A web app that uses an <strong>AI Agent</strong> to analyze Nasdaq 100 stocks and recommend short-term swing trades.<br>
+Owner: hooky2019 · Live URL: <code>https://goodluck.streamlit.app</code></p>
+
+<div class="quote">
+<strong>One-line explanation:</strong><br>
+You tap <strong>Refresh</strong> → AI reads the market → screens 100 stocks → picks the <strong>top 3 trade ideas</strong> → returns a full plan (entry, stop, targets, position size).
+</div>
+
+<h2>1. System Architecture</h2>
+<p>The app has three layers: <span class="tag">Frontend</span> <span class="tag-green tag">AI Agent</span> <span class="tag-orange tag">Data Layer</span></p>
+
+<div class="mermaid">
+flowchart TD
+    Phone["📱 Phone / Browser"]
+    Cloud["☁️ Streamlit Cloud<br/>(free hosting)"]
+    UI["🎨 Streamlit UI<br/>(Python)"]
+    Agent["🤖 AI Agent<br/>Llama 3.3 70B (Groq)"]
+    Data["📊 Data Layer<br/>(fetchers + caching)"]
+    Sources["🌐 External APIs<br/>Yahoo / Google / Reddit / Groq"]
+
+    Phone -- "HTTPS request" --> Cloud
+    Cloud --> UI
+    UI -- "user taps Refresh" --> Agent
+    Agent -- "tool call" --> Data
+    Data -- "API request" --> Sources
+    Sources -- "raw data" --> Data
+    Data -- "processed data" --> Agent
+    Agent -- "JSON report" --> UI
+    UI -- "render cards" --> Phone
+
+    style Agent fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style Data fill:#9e6a03,stroke:#f0883e,color:#fff
+    style UI fill:#1a7f37,stroke:#3fb950,color:#fff
+</div>
+
+<h2>2. What Happens on a Refresh</h2>
+<p>When you tap <strong>🔄 Refresh picks</strong>, the AI calls tools in this order:</p>
+
+<div class="mermaid">
+sequenceDiagram
+    participant U as 👤 User
+    participant A as 🤖 AI Agent
+    participant D as 📊 Data Tools
+    participant Y as 🌐 Yahoo / News
+
+    U->>A: Tap Refresh picks
+    A->>D: get_market_context()
+    D->>Y: Fetch SPY / QQQ / VIX
+    Y-->>D: Index data
+    D-->>A: Regime (risk-on/off/chop)
+
+    A->>D: screen_universe()
+    D->>Y: Scan 100 Nasdaq stocks
+    Y-->>D: Per-ticker scores
+    D-->>A: Top 15 shortlist
+
+    loop For top 5 candidates
+        A->>D: get_technicals(ticker)
+        A->>D: get_catalysts(ticker)
+        D-->>A: EMA/RSI/MACD/ATR + earnings date
+    end
+
+    loop For top 3 finalists
+        A->>D: get_news(ticker)
+        A->>D: get_options_snapshot(ticker)
+        A->>D: get_reddit_mentions(ticker)
+        D-->>A: News / options / social sentiment
+    end
+
+    A->>A: Synthesize + emit JSON report
+    A-->>U: Render top 3 pick cards
+</div>
+
+<div class="quote">
+<strong>Key point:</strong> The AI is not following a hardcoded sequence — it <strong>decides</strong> which tool to call next based on what it has learned so far. That dynamic decision-making is what makes this an <strong>AI Agent</strong> rather than a script.
+</div>
+
+<h2>3. Project Structure</h2>
+<p>How the Python code is organized:</p>
+
+<div class="card">
+<pre style="margin:0; color: var(--text); line-height: 1.6;">
+<span style="color: var(--accent);">GOODLUCK-/</span>
+├── <strong>streamlit_app.py</strong>      ← Entry point
+├── requirements.txt      ← Python dependencies
+├── .streamlit/
+│   ├── config.toml      ← UI theme
+│   └── secrets.toml     ← API keys (NOT in git)
+└── <span style="color: var(--orange);">aurora/</span>               ← Main package
+    ├── config.py        ← Secret + model config
+    ├── universe.py      ← <span class="tag">Nasdaq 100</span> ticker list
+    ├── <span style="color: var(--green);">data/</span>            ← 📊 Data fetcher layer
+    │   ├── market.py    ← Price / index data
+    │   ├── indicators.py← <span class="tag">RSI / MACD / ATR / EMA</span>
+    │   ├── options.py   ← Options chains (IV / Max Pain / unusual flow)
+    │   ├── news.py      ← News aggregator (Yahoo + Google + Alpha Vantage)
+    │   ├── reddit.py    ← Social sentiment (r/wallstreetbets etc.)
+    │   ├── calendar.py  ← Earnings / ex-div calendar
+    │   └── screener.py  ← Score-based filter over the 100 tickers
+    ├── <span style="color: #1f6feb;">agent/</span>           ← 🤖 AI Agent layer
+    │   ├── prompts.py   ← System prompt (tells the AI how to work)
+    │   ├── tools.py     ← 10 tool definitions
+    │   ├── runner.py    ← Tool-use loop driver
+    │   └── schema.py    ← Output format (Pydantic Schema)
+    └── <span style="color: var(--pink);">ui/</span>              ← 🎨 Rendering layer
+        ├── render.py    ← Pick cards
+        └── chat.py      ← Chat panel
+</pre>
+</div>
+
+<h2>4. The 10 Agent Tools</h2>
+<p>The AI behaves like an analyst — but it needs <strong>tools</strong> to fetch real data. Here are all 10, in roughly the order they get used:</p>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Tool</th><th>Purpose</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>get_market_context</code></td><td>Reads broad market: SPY / QQQ / VIX / 11 sector ETFs</td><td>yfinance</td></tr>
+    <tr><td>2</td><td><code>screen_universe</code></td><td>Filters 100 stocks down to top 15</td><td>Internal scoring</td></tr>
+    <tr><td>3</td><td><code>get_quote</code></td><td>Current price + volume vs 20-day avg</td><td>yfinance</td></tr>
+    <tr><td>4</td><td><code>get_technicals</code></td><td>EMA / RSI / MACD / ATR / support / resistance</td><td>Local (pandas)</td></tr>
+    <tr><td>5</td><td><code>get_options_snapshot</code></td><td>IV / unusual flow / put-call ratio / Max Pain</td><td>yfinance</td></tr>
+    <tr><td>6</td><td><code>validate_options_play</code></td><td>Checks liquidity (open interest / bid-ask spread)</td><td>yfinance</td></tr>
+    <tr><td>7</td><td><code>get_catalysts</code></td><td>Next earnings + ex-div dates</td><td>yfinance</td></tr>
+    <tr><td>8</td><td><code>get_news</code></td><td>Last 5 days of news + sentiment</td><td>Yahoo + Google + Alpha Vantage</td></tr>
+    <tr><td>9</td><td><code>get_reddit_mentions</code></td><td>Reddit posts + bullish/bearish lean</td><td>Reddit public RSS</td></tr>
+    <tr><td>10</td><td><code>get_analyst_changes</code></td><td>Upgrades / downgrades in the last 30 days</td><td>yfinance</td></tr>
+  </tbody>
+</table>
+
+<h2>5. Tech Stack</h2>
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>Technology</th><th>Role</th><th>Cost</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Frontend</td><td><strong>Streamlit</strong></td><td>Auto-generates web UI from Python</td><td class="tag-green">Free</td></tr>
+    <tr><td>LLM</td><td><strong>Llama 3.3 70B</strong> via <strong>Groq</strong></td><td>Reasoning + tool calling</td><td class="tag-green">Free, 14,400 req/day</td></tr>
+    <tr><td>Market data</td><td><strong>yfinance</strong> (Yahoo Finance)</td><td>Prices, options, fundamentals</td><td class="tag-green">Free</td></tr>
+    <tr><td>News</td><td>Google News RSS + Alpha Vantage</td><td>Headlines + sentiment</td><td class="tag-green">Free</td></tr>
+    <tr><td>Social</td><td>Reddit public API</td><td>r/stocks / r/wallstreetbets etc.</td><td class="tag-green">Free</td></tr>
+    <tr><td>Hosting</td><td><strong>Streamlit Cloud</strong></td><td>Public URL + auto-redeploy</td><td class="tag-green">Free</td></tr>
+    <tr><td>Source control</td><td><strong>GitHub</strong></td><td>Version control + backup</td><td class="tag-green">Free</td></tr>
+    <tr><td>Language</td><td><strong>Python 3.11</strong></td><td>Full stack</td><td class="tag-green">Free</td></tr>
+  </tbody>
+</table>
+
+<div class="quote">
+<strong>💰 Monthly cost: <span class="big-emoji">$0</span></strong> — everything runs on free tiers.
+</div>
+
+<h2>6. AI Agent vs Hardcoded Rules</h2>
+
+<table>
+  <thead>
+    <tr><th></th><th>Rule-based script</th><th>AI Agent (this app)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Logic</td><td>Hardcoded: "if RSI&gt;70 sell, RSI&lt;30 buy"</td><td>AI decides what to look at next, dynamically</td></tr>
+    <tr><td>Flexibility</td><td>Low — every new edge case needs code</td><td>High — change two lines in prompts.py</td></tr>
+    <tr><td>Multi-signal analysis</td><td>Hard — rules explode combinatorially</td><td>Easy — AI weighs all 10 signals together</td></tr>
+    <tr><td>Explainability</td><td>"Indicator triggered" — vague</td><td>Plain-English thesis + risks — you can read it</td></tr>
+    <tr><td>Time to change strategy</td><td>Edit and test code</td><td>Edit the system prompt</td></tr>
+  </tbody>
+</table>
+
+<h2>7. Deployment Flow</h2>
+<p>Three steps from code to phone:</p>
+
+<div class="mermaid">
+flowchart LR
+    Code["💻 Local code<br/>lucky-aurora/"]
+    Git["📦 GitHub Repo<br/>hooky2019/GOODLUCK-"]
+    Cloud["☁️ Streamlit Cloud<br/>goodluck.streamlit.app"]
+    Phone["📱 Phone<br/>Add to Home Screen"]
+
+    Code -- "git push" --> Git
+    Git -- "auto deploy" --> Cloud
+    Cloud -- "public URL" --> Phone
+
+    style Code fill:#1a7f37,stroke:#3fb950,color:#fff
+    style Git fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style Cloud fill:#9e6a03,stroke:#f0883e,color:#fff
+    style Phone fill:#bc4c00,stroke:#ff7b72,color:#fff
+</div>
+
+<p><strong>Update cycle:</strong> Edit code → <code>git push</code> → Streamlit Cloud auto-redeploys in ~30 s → refresh on phone, done.</p>
+
+<h2>8. Secrets Management</h2>
+
+<div class="card">
+<p>API keys must <strong>never</strong> be committed to GitHub. Three layers of protection:</p>
+<ol>
+  <li><strong>Local dev:</strong> Keys live in <code>.streamlit/secrets.toml</code> — listed in <code>.gitignore</code>, so git never touches them.</li>
+  <li><strong>Cloud runtime:</strong> Keys are pasted into Streamlit Cloud → Settings → Secrets — stored encrypted.</li>
+  <li><strong>Code access:</strong> Python reads with <code>st.secrets.get("GROQ_API_KEY")</code> — works the same way in both environments.</li>
+</ol>
+<p>The two required keys:</p>
+<ul>
+  <li><span class="tag">GROQ_API_KEY</span> — for Llama 3.3 70B (free at console.groq.com)</li>
+  <li><span class="tag">ALPHA_VANTAGE_KEY</span> — for news sentiment (free at alphavantage.co)</li>
+</ul>
+</div>
+
+<h2>9. Output Schema</h2>
+<p>Every refresh produces a JSON report shaped like this:</p>
+
+<div class="card">
+<pre style="margin:0; line-height: 1.5;">
+{
+  "regime": {                                ← 🌍 Market read
+    "label": "risk-on | risk-off | chop",
+    "reasoning": "plain-English why",
+    "sizing_advice": "size up or down today",
+    "avoid_today": "what setups to skip"
+  },
+  "picks": [                                 ← 🎯 Up to 3 picks
+    {
+      "ticker": "NVDA",
+      "setup": "breakout / pullback / mean-reversion / momentum",
+      "thesis": "why this, why now (2-3 sentences)",
+      "entry_zone": [128.5, 129.8],          ← Entry range
+      "stop": 125.1,                          ← Stop loss
+      "stop_basis": "1.5x ATR / structural support",
+      "targets": [134, 138, 143],             ← T1 / T2 / T3
+      "rr_ratio": 2.8,                        ← Risk/reward (min 2:1)
+      "position_size_pct": 3.5,               ← % of account
+      "position_size_dollars": 3500,
+      "risks": ["what would invalidate the trade"],
+      "options_play": {                       ← Optional defined-risk play
+        "type": "long call",
+        "strike": 130,
+        "expiry": "2025-11-21",
+        "rationale": "why options here"
+      }
+    }
+  ]
+}
+</pre>
+</div>
+
+<h2>10. Elevator Pitch</h2>
+
+<div class="quote">
+<strong>"I built a web app with Python + Streamlit. It's backed by Llama 3.3 70B (free via Groq), and the AI calls 10 data tools — prices, technical indicators, options flow, news, Reddit — to pick the 3 best short-term trade ideas out of the Nasdaq 100 each time I refresh. Every pick comes with entry, stop, targets, and position size. It's deployed free on Streamlit Cloud and works on my phone. Total cost: $0 per month."</strong>
+</div>
+
+<p class="footnote">
+🍀 <strong>GOODLUCK $</strong> — Live: <code>https://goodluck.streamlit.app</code><br>
+Repo: <code>github.com/hooky2019/GOODLUCK-</code><br>
+Generated 2026-05-17 · See <code>ARCHITECTURE_CN.html</code> for the Mandarin version.
+</p>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1f6feb',
+      primaryTextColor: '#fff',
+      primaryBorderColor: '#58a6ff',
+      lineColor: '#8b949e',
+      secondaryColor: '#9e6a03',
+      tertiaryColor: '#1a7f37',
+      background: '#0d1117',
+      mainBkg: '#161b22',
+      secondBkg: '#21262d',
+      tertiaryBkg: '#30363d'
+    }
+  });
+</script>
+
+</body>
+</html>
