@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍀 GOODLUCK $ — 系统架构说明</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #00d4ff;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --pink: #ff7b72;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+    line-height: 1.75;
+  }
+  h1 {
+    font-size: 2.2em;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 1.5em;
+    color: var(--accent);
+    margin-top: 48px;
+    border-left: 4px solid var(--accent);
+    padding-left: 12px;
+  }
+  h3 {
+    color: var(--orange);
+    margin-top: 28px;
+  }
+  .lead {
+    font-size: 1.1em;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .quote {
+    border-left: 4px solid var(--green);
+    background: rgba(63,185,80,0.08);
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+  code {
+    background: rgba(255,255,255,0.08);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+    font-family: "Cascadia Mono", "Consolas", monospace;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(0,212,255,0.15);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    margin: 0 4px;
+    font-weight: 600;
+  }
+  .tag-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-orange { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .tag-pink { background: rgba(255,123,114,0.15); color: var(--pink); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  tr:hover { background: rgba(255,255,255,0.02); }
+  .mermaid {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  ul li { margin: 6px 0; }
+  .footnote {
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-top: 60px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  .big-emoji { font-size: 1.4em; }
+</style>
+</head>
+<body>
+
+<h1>🍀 GOODLUCK $ — 系统架构说明</h1>
+<p class="lead">一个用 <strong>AI Agent</strong> 自动分析 Nasdaq 100 股票、推荐短线 Swing Trade 的网页 App。<br>
+作者: 你 (hooky2019) · 部署: <code>https://goodluck.streamlit.app</code></p>
+
+<div class="quote">
+<strong>一句话解释:</strong><br>
+你按一下 <strong>Refresh 按钮</strong> → AI 读市场 → 筛选 100 只股票 → 选出最值得交易的 <strong>3 只</strong> → 给你完整的交易计划（进场价、止损、目标、仓位大小）。
+</div>
+
+<h2>1. 整体架构 (System Architecture)</h2>
+<p>整个 App 分成 <span class="tag">前端 Frontend</span> <span class="tag-green tag">AI 代理 Agent</span> <span class="tag-orange tag">数据层 Data Layer</span> 三层:</p>
+
+<div class="mermaid">
+flowchart TD
+    Phone["📱 你的手机 / 电脑<br/>(Browser)"]
+    Cloud["☁️ Streamlit Cloud<br/>(免费云端服务器)"]
+    UI["🎨 Streamlit UI<br/>(用户界面 - Python)"]
+    Agent["🤖 AI Agent<br/>Llama 3.3 70B (Groq)"]
+    Data["📊 Data Layer<br/>(数据获取层)"]
+    Sources["🌐 外部数据源<br/>Yahoo / Google / Reddit / Groq"]
+
+    Phone -- "HTTPS 请求" --> Cloud
+    Cloud --> UI
+    UI -- "用户点击 Refresh" --> Agent
+    Agent -- "调用工具 Tool Call" --> Data
+    Data -- "API 请求" --> Sources
+    Sources -- "原始数据" --> Data
+    Data -- "处理后的数据" --> Agent
+    Agent -- "JSON 报告" --> UI
+    UI -- "渲染卡片" --> Phone
+
+    style Agent fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style Data fill:#9e6a03,stroke:#f0883e,color:#fff
+    style UI fill:#1a7f37,stroke:#3fb950,color:#fff
+</div>
+
+<h2>2. 一次刷新发生了什么 (Refresh Flow)</h2>
+<p>当你按下 <strong>🔄 Refresh picks</strong> 按钮时，AI 会按顺序调用 10 个工具:</p>
+
+<div class="mermaid">
+sequenceDiagram
+    participant U as 👤 用户
+    participant A as 🤖 AI Agent
+    participant D as 📊 Data Tools
+    participant Y as 🌐 Yahoo / News
+
+    U->>A: 按下 Refresh picks
+    A->>D: get_market_context()
+    D->>Y: 抓取 SPY / QQQ / VIX
+    Y-->>D: 大盘走势数据
+    D-->>A: 市场情绪 (risk-on/off/chop)
+
+    A->>D: screen_universe()
+    D->>Y: 扫描 100 只 Nasdaq 股票
+    Y-->>D: 每只股票评分
+    D-->>A: Top 15 候选名单
+
+    loop 对 Top 5 候选
+        A->>D: get_technicals(ticker)
+        A->>D: get_catalysts(ticker)
+        D-->>A: EMA/RSI/MACD/ATR + 财报日
+    end
+
+    loop 对最强 3 只
+        A->>D: get_news(ticker)
+        A->>D: get_options_snapshot(ticker)
+        A->>D: get_reddit_mentions(ticker)
+        D-->>A: 新闻 / 期权 / 社交情绪
+    end
+
+    A->>A: 综合分析 + 出 JSON 报告
+    A-->>U: 显示 Top 3 picks 卡片
+</div>
+
+<div class="quote">
+<strong>关键点:</strong> AI 不是按固定流程走，而是<strong>自己决定</strong>什么时候调用哪个工具 (Tool Calling)。这就是 <strong>AI Agent</strong> 跟传统脚本的最大区别。
+</div>
+
+<h2>3. 文件夹结构 (Project Structure)</h2>
+<p>整个项目的 Python 代码组织如下:</p>
+
+<div class="card">
+<pre style="margin:0; color: var(--text); line-height: 1.6;">
+<span style="color: var(--accent);">GOODLUCK-/</span>
+├── <strong>streamlit_app.py</strong>      ← 入口文件 (Entry Point)
+├── requirements.txt      ← Python 套件清单 (Dependencies)
+├── .streamlit/
+│   ├── config.toml      ← UI 主题配置
+│   └── secrets.toml     ← API 密钥 (不上传 GitHub)
+└── <span style="color: var(--orange);">aurora/</span>               ← 主代码包
+    ├── config.py        ← 配置 + 密钥管理
+    ├── universe.py      ← <span class="tag">Nasdaq 100</span> 股票清单
+    ├── <span style="color: var(--green);">data/</span>            ← 📊 数据获取层 (Data Fetchers)
+    │   ├── market.py    ← 股价 / 大盘
+    │   ├── indicators.py← 技术指标 <span class="tag">RSI / MACD / ATR / EMA</span>
+    │   ├── options.py   ← 期权数据 (IV / Max Pain / 异常成交)
+    │   ├── news.py      ← 新闻聚合 (Yahoo + Google + Alpha Vantage)
+    │   ├── reddit.py    ← 社交情绪 (r/wallstreetbets 等)
+    │   ├── calendar.py  ← 财报 / 除权日历
+    │   └── screener.py  ← 100 只股票打分筛选
+    ├── <span style="color: #1f6feb;">agent/</span>           ← 🤖 AI 代理层 (Agent Layer)
+    │   ├── prompts.py   ← System Prompt (告诉 AI 怎么做)
+    │   ├── tools.py     ← 10 个工具定义 (Tools)
+    │   ├── runner.py    ← Tool-Use Loop 驱动
+    │   └── schema.py    ← 输出格式 (Pydantic Schema)
+    └── <span style="color: var(--pink);">ui/</span>              ← 🎨 界面渲染层
+        ├── render.py    ← 股票卡片显示
+        └── chat.py      ← 聊天框 (Chat Panel)
+</pre>
+</div>
+
+<h2>4. AI Agent 的 10 个工具 (Agent Tools)</h2>
+<p>AI 像一个分析师，但它必须通过<strong>工具 (Tool)</strong> 才能拿到真实数据。10 个工具按使用顺序:</p>
+
+<table>
+  <thead>
+    <tr><th>顺序</th><th>工具 Tool</th><th>作用</th><th>数据来源</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>get_market_context</code></td><td>读取大盘走势 (SPY/QQQ/VIX/11 个 sector ETF)</td><td>yfinance</td></tr>
+    <tr><td>2</td><td><code>screen_universe</code></td><td>从 100 只股票筛出 Top 15</td><td>内部打分算法</td></tr>
+    <tr><td>3</td><td><code>get_quote</code></td><td>当前股价 + 成交量比</td><td>yfinance</td></tr>
+    <tr><td>4</td><td><code>get_technicals</code></td><td>EMA / RSI / MACD / ATR / 支撑阻力</td><td>本地计算 (pandas)</td></tr>
+    <tr><td>5</td><td><code>get_options_snapshot</code></td><td>期权 IV / 异常成交 / Put-Call 比 / Max Pain</td><td>yfinance</td></tr>
+    <tr><td>6</td><td><code>validate_options_play</code></td><td>检查期权流动性 (开仓兴趣 / 买卖价差)</td><td>yfinance</td></tr>
+    <tr><td>7</td><td><code>get_catalysts</code></td><td>下次财报日 + 除权日</td><td>yfinance</td></tr>
+    <tr><td>8</td><td><code>get_news</code></td><td>最近 5 天新闻 + 情绪标签</td><td>Yahoo + Google + Alpha Vantage</td></tr>
+    <tr><td>9</td><td><code>get_reddit_mentions</code></td><td>Reddit 帖子 + 看多/看空判断</td><td>Reddit RSS</td></tr>
+    <tr><td>10</td><td><code>get_analyst_changes</code></td><td>最近 30 天分析师升降评级</td><td>yfinance</td></tr>
+  </tbody>
+</table>
+
+<h2>5. 技术栈 (Tech Stack)</h2>
+
+<table>
+  <thead>
+    <tr><th>层 Layer</th><th>技术 Technology</th><th>作用</th><th>费用</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>前端 Frontend</td><td><strong>Streamlit</strong></td><td>自动生成网页 UI (Python → HTML)</td><td class="tag-green">免费</td></tr>
+    <tr><td>AI 模型 LLM</td><td><strong>Llama 3.3 70B</strong> (via <strong>Groq</strong>)</td><td>推理 + 决策 + 调用工具</td><td class="tag-green">免费 14,400/天</td></tr>
+    <tr><td>市场数据</td><td><strong>yfinance</strong> (Yahoo Finance)</td><td>股价、期权、财报</td><td class="tag-green">免费</td></tr>
+    <tr><td>新闻</td><td>Google News RSS + Alpha Vantage</td><td>新闻 + 情绪</td><td class="tag-green">免费</td></tr>
+    <tr><td>社交情绪</td><td>Reddit 公开 API</td><td>r/stocks / r/wallstreetbets</td><td class="tag-green">免费</td></tr>
+    <tr><td>云端部署</td><td><strong>Streamlit Cloud</strong></td><td>免费公开网址 + 自动重启</td><td class="tag-green">免费</td></tr>
+    <tr><td>代码托管</td><td><strong>GitHub</strong></td><td>版本控制 + 备份</td><td class="tag-green">免费</td></tr>
+    <tr><td>开发语言</td><td><strong>Python 3.11</strong></td><td>全栈语言</td><td class="tag-green">免费</td></tr>
+  </tbody>
+</table>
+
+<div class="quote">
+<strong>💰 月成本: <span class="big-emoji">$0</span></strong> — 全部用免费层即可运行。
+</div>
+
+<h2>6. AI Agent vs 传统脚本 (为什么不写死规则?)</h2>
+
+<table>
+  <thead>
+    <tr><th></th><th>传统 Rule-based</th><th>AI Agent (本 App)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>逻辑</td><td>写死: "RSI&gt;70 卖, RSI&lt;30 买"</td><td>AI 自己决定先看什么、再看什么</td></tr>
+    <tr><td>灵活性</td><td>很低，新情况要改代码</td><td>很高，prompts.py 改两行就能调整策略</td></tr>
+    <tr><td>多维分析</td><td>难，规则会爆炸</td><td>容易，AI 自己综合 10 个信号</td></tr>
+    <tr><td>解释能力</td><td>"指标到位了" — 模糊</td><td>用人话解释 thesis + risks — 你能看懂</td></tr>
+    <tr><td>开发时间</td><td>每个策略都要编程</td><td>改 system prompt 即可</td></tr>
+  </tbody>
+</table>
+
+<h2>7. 部署流程 (Deployment Flow)</h2>
+<p>从写完代码到手机能用，一共三步:</p>
+
+<div class="mermaid">
+flowchart LR
+    Code["💻 本地代码<br/>lucky-aurora/"]
+    Git["📦 GitHub Repo<br/>hooky2019/GOODLUCK-"]
+    Cloud["☁️ Streamlit Cloud<br/>goodluck.streamlit.app"]
+    Phone["📱 手机<br/>Add to Home Screen"]
+
+    Code -- "git push" --> Git
+    Git -- "auto deploy" --> Cloud
+    Cloud -- "公开网址" --> Phone
+
+    style Code fill:#1a7f37,stroke:#3fb950,color:#fff
+    style Git fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style Cloud fill:#9e6a03,stroke:#f0883e,color:#fff
+    style Phone fill:#bc4c00,stroke:#ff7b72,color:#fff
+</div>
+
+<p><strong>更新流程:</strong> 改完代码 → <code>git push</code> → Streamlit Cloud 30 秒内自动重新部署 → 手机刷新即可看到。</p>
+
+<h2>8. 安全和密钥管理 (Secrets Management)</h2>
+
+<div class="card">
+<p>密钥 (API Keys) <strong>绝对不能</strong> 写进代码里推到 GitHub。本项目用三层保护:</p>
+<ol>
+  <li><strong>本地开发:</strong> 密钥放在 <code>.streamlit/secrets.toml</code> — 这个文件在 <code>.gitignore</code> 里，不会被 git 跟踪。</li>
+  <li><strong>云端运行:</strong> 密钥粘到 Streamlit Cloud → Settings → Secrets — 加密存储。</li>
+  <li><strong>代码访问:</strong> Python 用 <code>st.secrets.get("GROQ_API_KEY")</code> 读取 — 本地读文件，云端读云端存储。</li>
+</ol>
+<p>需要的两个密钥:</p>
+<ul>
+  <li><span class="tag">GROQ_API_KEY</span> — 给 Llama 3.3 70B 用 (免费，从 console.groq.com 拿)</li>
+  <li><span class="tag">ALPHA_VANTAGE_KEY</span> — 新闻情绪用 (免费，从 alphavantage.co 拿)</li>
+</ul>
+</div>
+
+<h2>9. 输出报告结构 (Report Schema)</h2>
+<p>每次 AI 都会输出一个标准 JSON，里面包含:</p>
+
+<div class="card">
+<pre style="margin:0; line-height: 1.5;">
+{
+  "regime": {                                ← 🌍 大盘判断
+    "label": "risk-on | risk-off | chop",
+    "reasoning": "为什么是这个判断 (人话)",
+    "sizing_advice": "今天该重仓还是轻仓",
+    "avoid_today": "今天应该避开什么"
+  },
+  "picks": [                                 ← 🎯 Top 3 picks
+    {
+      "ticker": "NVDA",
+      "setup": "breakout / pullback / mean-reversion / momentum",
+      "thesis": "为什么买 (2-3 句人话)",
+      "entry_zone": [128.5, 129.8],          ← 进场区间
+      "stop": 125.1,                          ← 止损价
+      "stop_basis": "1.5x ATR / 结构性支撑",
+      "targets": [134, 138, 143],             ← T1 / T2 / T3
+      "rr_ratio": 2.8,                        ← 风险报酬比 (最少 2:1)
+      "position_size_pct": 3.5,               ← 仓位 (% 账户)
+      "position_size_dollars": 3500,
+      "risks": ["可能让交易失败的因素"],
+      "options_play": {                       ← 可选: 期权方案
+        "type": "long call",
+        "strike": 130,
+        "expiry": "2025-11-21",
+        "rationale": "为什么用期权"
+      }
+    }
+  ]
+}
+</pre>
+</div>
+
+<h2>10. 对外解释的一句话 (Elevator Pitch)</h2>
+
+<div class="quote">
+<strong>"我用 Python + Streamlit 做了个网页 App，背后接的是 Llama 3.3 70B 这个 AI 模型（免费），AI 自己会调用 10 个数据工具（股价、技术指标、期权、新闻、Reddit），帮我从 100 只 Nasdaq 股票里挑出 3 只短线机会，给出完整的进场/止损/目标价，部署在 Streamlit 免费云端，手机随时刷。整个东西月成本 0 美元。"</strong>
+</div>
+
+<p class="footnote">
+🍀 <strong>GOODLUCK $</strong> — 部署网址: <code>https://goodluck.streamlit.app</code><br>
+代码: <code>github.com/hooky2019/GOODLUCK-</code><br>
+本文档生成于: 2026-05-17 · 用 Mandarin + 关键 English term 写作 · 适合分享给同事
+</p>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1f6feb',
+      primaryTextColor: '#fff',
+      primaryBorderColor: '#58a6ff',
+      lineColor: '#8b949e',
+      secondaryColor: '#9e6a03',
+      tertiaryColor: '#1a7f37',
+      background: '#0d1117',
+      mainBkg: '#161b22',
+      secondBkg: '#21262d',
+      tertiaryBkg: '#30363d'
+    }
+  });
+</script>
+
+</body>
+</html>
