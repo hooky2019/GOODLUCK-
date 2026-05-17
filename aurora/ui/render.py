@@ -89,7 +89,7 @@ def report(report: Report) -> None:
     regime_banner(report)
     st.markdown("---")
     if not report.picks:
-        st.warning("Aurora returned no picks today — nothing met the quality bar.")
+        st.warning("Goodluck returned no picks today — nothing met the quality bar.")
         return
     for i, pick in enumerate(report.picks, start=1):
         pick_card(i, pick)

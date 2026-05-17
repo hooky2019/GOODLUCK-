@@ -10,8 +10,8 @@ from ..agent.schema import Report
 
 
 def render(report: Optional[Report]) -> None:
-    st.markdown("## 💬 Ask Aurora")
-    st.caption("Ask follow-ups about any ticker. Aurora can pull fresh data live.")
+    st.markdown("## 💬 Ask Goodluck")
+    st.caption("Ask follow-ups about any ticker. Goodluck can pull fresh data live.")
 
     # Display history (stored as a list of {"role", "text"} for the UI only;
     # the full Anthropic transcript lives in session_state["chat_transcript"]).

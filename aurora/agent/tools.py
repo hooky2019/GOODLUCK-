@@ -1,4 +1,4 @@
-"""Tool definitions for Aurora.
+"""Tool definitions for Goodluck.
 
 Each tool is a JSON schema (passed to Anthropic) plus a Python handler that
 the runner invokes when Claude requests it. Handlers return JSON-serializable

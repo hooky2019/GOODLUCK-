@@ -1,9 +1,9 @@
-# Lucky Aurora
+# 🍀 GOODLUCK $
 
 Swing-trade dashboard for the Nasdaq 100 with a Gemini-powered agent. Tap a
 button on your phone, get 3 short-term (3–10 day) trade ideas with plain-English
 thesis, entry/stop/targets, risk-reward, position size, and an optional
-defined-risk options play. Chat with the agent about any ticker right in the app.
+defined-risk options play. Chat with Goodluck about any ticker right in the app.
 
 ## Quick start (local)
 

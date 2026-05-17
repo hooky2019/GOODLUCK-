@@ -1,4 +1,4 @@
-"""Lucky Aurora — Streamlit entry point. Mobile-first layout."""
+"""GOODLUCK $ — Streamlit entry point. Mobile-first layout."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 import streamlit as st
 
 st.set_page_config(
-    page_title="Lucky Aurora",
-    page_icon="🌅",
+    page_title="GOODLUCK $",
+    page_icon="🍀",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -22,7 +22,7 @@ from aurora.ui import render as render_ui
 
 # ───────────────────────── header ─────────────────────────
 
-st.title("🌅 Lucky Aurora")
+st.title("🍀 GOODLUCK $")
 st.caption("Swing-trade picks for the Nasdaq 100 — refreshed on demand, with a live AI analyst.")
 
 if not GEMINI_API_KEY:
@@ -56,7 +56,7 @@ last_refresh_at = st.session_state.get("last_refresh_at")
 if last_refresh_at:
     st.caption(f"Last updated: {last_refresh_at}  ·  quotes are 15 minutes delayed")
 else:
-    st.caption("Tap **Refresh picks** to start. First run takes ~60–180 s while Aurora pulls live data.")
+    st.caption("Tap **Refresh picks** to start. First run takes ~30–90 s while Goodluck pulls live data.")
 
 
 # ───────────────────────── generate report ─────────────────────────
@@ -66,14 +66,14 @@ def _run_report(account_size: float) -> None:
     st.session_state["account_size"] = account_size  # bust_all clears session_state["last_report"] but keeps the rest
 
     tool_log: list[str] = []
-    with st.status("Aurora is working…", expanded=True) as status:
+    with st.status("Goodluck is working…", expanded=True) as status:
         log_box = st.empty()
 
         def on_event(event):
             if event.kind == "tool_use":
                 args_str = _fmt_args(event.tool_args)
                 tool_log.append(f"🔧 `{event.tool_name}({args_str})`")
-                status.update(label=f"Calling {event.tool_name}…")
+                status.update(label=f"Goodluck is calling {event.tool_name}…")
                 log_box.markdown("\n\n".join(tool_log))
             elif event.kind == "tool_result":
                 pass  # avoid double-logging; result preview not shown
@@ -87,8 +87,8 @@ def _run_report(account_size: float) -> None:
 
         if report_obj is None:
             status.update(label="Could not generate a valid report", state="error", expanded=True)
-            st.error("Aurora's response did not parse into a valid report.")
-            with st.expander("Show what Aurora said"):
+            st.error("Goodluck's response did not parse into a valid report.")
+            with st.expander("Show what Goodluck said"):
                 st.markdown(narrative or "_(no narrative captured)_")
             return
 
@@ -122,7 +122,7 @@ if refresh:
 report_obj: Report | None = st.session_state.get("last_report")
 
 if report_obj is not None:
-    with st.expander("📝 How Aurora got here (reasoning)"):
+    with st.expander("📝 How Goodluck got here (reasoning)"):
         st.markdown(st.session_state.get("last_narrative", "") or "_(no narrative)_")
     st.write("")
     render_ui.report(report_obj)
@@ -131,7 +131,7 @@ if report_obj is not None:
 else:
     st.info(
         "No picks yet for this session. Tap **🔄 Refresh picks** above.\n\n"
-        "Aurora will:\n"
+        "Goodluck will:\n"
         "1. Read the market regime (SPY/QQQ/VIX/sectors)\n"
         "2. Screen the Nasdaq 100 for the top ~15 setups\n"
         "3. Drill into the strongest 6–10 names (technicals, options, catalysts, news, Reddit)\n"
